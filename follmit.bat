@@ -32,7 +32,7 @@ echo.
 echo Deleting Registry Keys
 reg delete HKEY_CLASSES_ROOT\ms-msdt /f
 echo.
-echo Key backed up to %homedrive%%homepath%\FollinaMitigation and deleted from Registry
+echo Keys backed up to %homedrive%%homepath%\FollinaMitigation and deleted from Registry
 echo.
 echo This Temp folder will be removed when a patch is released and you do a restore.
 echo Please leave it in place until then.
