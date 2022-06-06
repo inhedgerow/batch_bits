@@ -12,7 +12,7 @@ echo.
 
 set /p ab=?
 if '%ab%'=='x' goto end
-if '%ab%'=='1' goto backuploc
+if '%ab%'=='1' goto backupkey
 if '%ab%'=='2' goto restore
 echo.
 echo Please enter valid option
