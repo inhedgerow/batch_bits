@@ -7,6 +7,7 @@ echo ############### Customer Details ###############
 
 echo 0. New Customer
 echo 1. Existing Customer
+echo 2. No Customer Record
 echo x. Exit
 echo.
 echo.
@@ -18,6 +19,7 @@ if not '%choice%'=='' set choice=%choice:~0,1%
 
 if '%choice%'=='0' goto new
 if '%choice%'=='1' goto existing
+if '%choice%'=='2' goto av
 if '%choice%'=='x' goto end
 
 echo "%choice%" is not valid, try again
@@ -118,7 +120,7 @@ cls
 echo ############### Tidy Up Stuff ###############
 echo.
 echo 0.  Back to AV
-echo 1.  System File Checker
+echo 1.  DISM and SFC
 echo 2.  Deployment Image Servicing and Management
 echo 3.  Check Startup
 echo 4.  Check Installed Programs
@@ -143,7 +145,7 @@ set choice=
 set /p choice= Next Step. 
 if not '%choice%'=='' set choice=%choice:~0,2%
 
-if '%choice%'=='1' goto sfc
+if '%choice%'=='1' goto dismsfc
 if '%choice%'=='2' goto dism
 if '%choice%'=='3' goto msc
 if '%choice%'=='4' goto app
@@ -265,10 +267,17 @@ goto av
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :: 1
-:sfc
+:dismsfc
 cd %systemdrive%\
+echo DISM Check,Scan and Restore started at %time% && echo.) >> "%logfile%"
+DISM /Online /Cleanup-Image /CheckHealth
+DISM /Online /Cleanup-Image /ScanHealth
+DISM /Online /Cleanup-Image /RestoreHealth
+(echo DISM Check, Scan and Restore completed at %time% && echo.) >> "%logfile%"
+
 sfc /scannow
 (echo SFC scan run at %time% && echo.) >> "%logfile%"
+
 pause
 goto other
 
