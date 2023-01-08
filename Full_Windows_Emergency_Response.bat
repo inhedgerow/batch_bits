@@ -1,5 +1,5 @@
 @ECHO off
-
+title Help With Solutions
 :customer
 cls
 
@@ -81,7 +81,7 @@ echo 10. Malwarebytes Anti-Rootkit
 echo 11. Malwarebytes Adwcleaner
 echo 12. Malwarebytes
 echo 13. CCleaner
-echo 14. Chrome Cleanup Tool (Moved to browser)
+echo 14. Bleachbit
 echo 15. Sophos Scan and Clean
 echo x.  Exit
 echo.
@@ -105,7 +105,7 @@ if '%choice%'=='10' goto mbar
 if '%choice%'=='11' goto mbaw
 if '%choice%'=='12' goto mb
 if '%choice%'=='13' goto cc
-if '%choice%'=='14' goto gcc
+if '%choice%'=='14' goto bb
 if '%choice%'=='15' goto ssc
 if '%choice%'=='x' goto end
 
@@ -134,6 +134,8 @@ echo 13. Retrieve Windows product key
 echo 14. Reboot (Required for KVRT log removal)
 echo 15. Create Restore Point
 echo 16. System Information
+echo 17. Follina Mitigation
+echo 18. Network Scanner
 echo x.  Exit
 
 echo.
@@ -158,6 +160,8 @@ if '%choice%'=='13' goto winkey
 if '%choice%'=='14' goto rb
 if '%choice%'=='15' goto rp
 if '%choice%'=='16' goto si
+if '%choice%'=='17' goto follina
+if '%choice%'=='18' goto ips
 if '%choice%'=='x' goto end
 
 echo "%choice%" is not valid, try again
@@ -196,7 +200,7 @@ goto av
 
 :: 6
 :eek
-"%~dp0AV\EEK\Start Emergency Kit Scanner.exe"
+"%~dp0AV\EEK\Start Scanner.exe"
 (echo Emsisoft Emergency Kit run at %time% && echo.) >> "%logfile%"
 
 goto av
@@ -246,9 +250,9 @@ goto av
 goto av
 
 :: 14
-:gcc
-"%~dp0AV\chrome_cleanup_tool.exe"
-(echo Google Chrome Cleanup Tool run at %time% && echo.) >> "%logfile%"
+:bb
+"%~dp0AV\BleachBit-Portable\bleachbit.exe"
+(echo BleachBit run at %time% && echo.) >> "%logfile%"
 goto av
 
 :: 15
@@ -314,6 +318,7 @@ for /F "tokens=3,*" %%a in ('netsh interface show interface^|find "Connected"') 
 
 ipconfig /flushdns
 (echo DNS set to Quad9 and cache flushed at %time% && echo.) >> "%logfile%"
+pause
 goto other
 
 :: 8
@@ -350,12 +355,13 @@ goto other
 
 setlocal enabledelayedexpansion
 set keys="HKEY_LOCAL_MACHINE\SOFTWARE\Norton" "HKEY_LOCAL_MACHINE\SOFTWARE\Emsisoft" "HKEY_LOCAL_MACHINE\SOFTWARE\HitmanPro" "HKEY_LOCAL_MACHINE\SOFTWARE\Piriform" "HKEY_LOCAL_MACHINE\SOFTWARE\SophosScanAndClean"
-
-for %%k in (%keys%) do (reg query %%k >nul 2>&1 if !errorlevel! == 0 (reg delete %%k /f && echo "Removed %%k at %time%" && echo.) >> %%logfile%% )
+::for %%k in (%keys%) do (reg query %%k >nul 2>&1 echo %errorlevel% )
+::pause
+for %%k in (%keys%) do (reg query %%k >nul 2>&1 if %%ERRORLEVEL%% EQU 0 reg delete %%k /f && echo "Removed %%k at %time%" && echo. >> %%logfile%% )
 endlocal
 
-::::::::: Move Log Files ::::::::::::
-::@echo on
+::::::::: Move Log Files and Remove folders ::::::::::::
+:: @echo on
 
 :: rkill
 if exist "%userprofile%\Desktop\Rkill.txt" move "%userprofile%\Desktop\Rkill.txt" "%logpath%"
@@ -376,10 +382,24 @@ if exist "%systemdrive%\TDSSKiller*.*" move "%systemdrive%\TDSSKiller*.*" "%logp
 pause
 
 :: npe
+if exist "%homedrive%%homepath%\AppData\Local\NPE" rmdir "%homedrive%%homepath%\AppData\Local\NPE"
+
+pause
+
 :: eek
 :: eos
+if exist "%homedrive%%homepath%\AppData\Local\ESET" rmdir "%homedrive%%homepath%\AppData\Local\ESET"
+
+pause
+
 :: hmp
 :: fos
+if exist "%homedrive%%homepath%\AppData\Local\F-Secure\Log\DART\fssos" move "%homedrive%%homepath%\AppData\Local\F-Secure\Log\DART\fssos" "%logpath%"
+if exist "%homedrive%%homepath%\AppData\Local\F-Secure\" rmdir /Q /S "%homedrive%%homepath%\AppData\Local\F-Secure\"
+if exist "%homedrive%%homepath%\AppData\Local\FSDART\" rmdir /Q /S "%homedrive%%homepath%\AppData\Local\FSDART\"
+
+pause
+
 :: mbar
 :: mbaw
 if exist "%systemdrive%\AdwCleaner\" move "%systemdrive%\AdwCleaner" "%logpath%"
@@ -390,7 +410,7 @@ pause
 :: cc
 :: gcc
 :: ssc
-::@echo off
+:: @echo off
 
 goto other
 
@@ -431,6 +451,68 @@ goto other
 systeminfo >> "%logfile"
 pause
 
+goto other
+
+::17
+:follina
+cls
+echo ############################################
+echo.
+echo.
+echo 1. Backup and Delete Registry Key
+echo 2. Restore Registry Key
+echo x. Exit
+echo.
+
+set /p ab=?
+if '%ab%'=='x' goto end
+if '%ab%'=='1' goto backupkey
+if '%ab%'=='2' goto restore
+echo.
+echo Please enter valid option
+pause
+goto follina
+
+
+:backupkey
+cls
+echo ############################################
+echo.
+echo.
+md %homedrive%%homepath%\FollinaMitigation
+echo Backing up Registry Keys
+reg export HKEY_CLASSES_ROOT\ms-msdt %homedrive%%homepath%\FollinaMitigation\msdt
+echo.
+echo Deleting Registry Keys
+reg delete HKEY_CLASSES_ROOT\ms-msdt /f
+echo.
+echo Keys backed up to %homedrive%%homepath%\FollinaMitigation and deleted from Registry
+echo.
+echo This Temp folder will be removed when a patch is released and you do a restore.
+echo Please leave it in place until then.
+echo.
+pause
+goto other
+
+:restore
+cls
+echo ############################################
+echo.
+echo.
+echo Importing Registry Keys
+reg import %homedrive%%homepath%\FollinaMitigation\msdt
+echo.
+echo Removing Temp Folder
+rmdir /s /q %homedrive%%homepath%\FollinaMitigation
+echo.
+echo Done
+echo.
+pause
+goto other
+
+:: 18
+:ips
+"%~dp0Advanced IP Scanner\advanced_ip_scanner.exe"
 goto other
 
 :end
