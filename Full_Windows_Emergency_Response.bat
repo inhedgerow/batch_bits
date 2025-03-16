@@ -117,16 +117,16 @@ goto av
 
 :other
 cls
-echo ############### Tidy Up Stuff ###############
+echo ############### Other Bits n Bobs ###############
 echo.
 echo 0.  Back to AV
 echo 1.  DISM and SFC
-echo 2.  Deployment Image Servicing and Management
+echo 2.  Open Settings
 echo 3.  Check Startup
 echo 4.  Check Installed Programs
 echo 5.  Review Security Settings
 echo 6.  Check user Account Settings
-echo 7.  Configure DNS to use Quad9
+echo 7.  Configure DNS to use Cloudflare-Block malware and adult content
 echo 8.  Run Defender Offline Scan
 echo 9.  Check for TPM
 echo 10. Router Admin
@@ -136,8 +136,12 @@ echo 13. Retrieve Windows product key
 echo 14. Reboot (Required for KVRT log removal)
 echo 15. Create Restore Point
 echo 16. System Information
-echo 17. Follina Mitigation
+echo 17. Restart Explorer.exe
 echo 18. Network Scanner
+echo 19. Get Wifi Details
+echo 20. Clear Windows Update cache
+echo 21. Reinstall Taskbar
+echo 22. Configure DNS to use Cloudflare-Block malware
 echo x.  Exit
 
 echo.
@@ -146,7 +150,7 @@ set /p choice= Next Step.
 if not '%choice%'=='' set choice=%choice:~0,2%
 
 if '%choice%'=='1' goto dismsfc
-if '%choice%'=='2' goto dism
+if '%choice%'=='2' goto sett
 if '%choice%'=='3' goto msc
 if '%choice%'=='4' goto app
 if '%choice%'=='5' goto sec
@@ -162,8 +166,12 @@ if '%choice%'=='13' goto winkey
 if '%choice%'=='14' goto rb
 if '%choice%'=='15' goto rp
 if '%choice%'=='16' goto si
-if '%choice%'=='17' goto follina
+if '%choice%'=='17' goto restartexplorer
 if '%choice%'=='18' goto ips
+if '%choice%'=='19' goto wifi
+if '%choice%'=='20' goto wincache
+if '%choice%'=='21' goto ReinstallTaskbar
+if '%choice%'=='22' goto dns2
 if '%choice%'=='x' goto end
 
 echo "%choice%" is not valid, try again
@@ -190,7 +198,7 @@ goto av
 
 :: 4
 :tdss 
-"%~dp0AV\tdsskiller.exe"
+"%~dp0AV\KasperskyTDSSKillerPortable\KasperskyTDSSKillerPortable.exe"
 (echo TDSS Killer run at %time% && echo.) >> "%logfile%"
 goto av
 
@@ -282,14 +290,9 @@ pause
 goto other
 
 :: 2
-:dism
+:sett
 cd %systemdrive%\
-(echo DISM Check,Scan and Restore started at %time% && echo.) >> "%logfile%"
-DISM /Online /Cleanup-Image /CheckHealth
-DISM /Online /Cleanup-Image /ScanHealth
-DISM /Online /Cleanup-Image /RestoreHealth
-(echo DISM Check, Scan and Restore completed at %time% && echo.) >> "%logfile%"
-pause
+control.exe
 goto other
 
 :: 3
@@ -321,12 +324,12 @@ goto other
 :dns
 for /F "tokens=3,*" %%a in ('netsh interface show interface^|find "Connected"') do (set itf=%%b)
 
-((ipconfig | findstr /C:IPv4 | findstr /V Link) >Nul && (netsh interface ipv4 set dnsservers %itf% static 9.9.9.9 primary && netsh interface ipv4 add dnsservers %itf% 149.112.112.112 index=2 && echo IPv4 DNS modified))
+((ipconfig | findstr /C:IPv4 | findstr /V Link) >Nul && (netsh interface ipv4 set dnsservers %itf% static 1.1.1.3 primary && netsh interface ipv4 add dnsservers %itf% 1.0.0.3 index=2 && echo IPv4 DNS modified))
 
-((ipconfig | findstr /C:IPv6 | findstr /V Link) >Nul && (netsh interface ipv6 set dnsservers %itf% static 2620:fe::fe primary && netsh interface ipv6 add dnsservers %itf% 2620:fe::9 index=2 && echo IPv6 DNS modified))
+((ipconfig | findstr /C:IPv6 | findstr /V Link) >Nul && (netsh interface ipv6 set dnsservers %itf% static 2606:4700:4700::1113 primary && netsh interface ipv6 add dnsservers %itf% 2606:4700:4700::1003 index=2 && echo IPv6 DNS modified))
 
 ipconfig /flushdns
-(echo DNS set to Quad9 and cache flushed at %time% && echo.) >> "%logfile%"
+(echo DNS set to Cloudflare-Block malware and adult content-and cache flushed at %time% && echo.) >> "%logfile%"
 pause
 goto other
 
@@ -463,60 +466,10 @@ pause
 goto other
 
 ::17
-:follina
-cls
-echo ############################################
-echo.
-echo.
-echo 1. Backup and Delete Registry Key
-echo 2. Restore Registry Key
-echo x. Exit
-echo.
+:restartexplorer
+taskkill /f/IM explorer.exe
+start explorer.exe
 
-set /p ab=?
-if '%ab%'=='x' goto end
-if '%ab%'=='1' goto backupkey
-if '%ab%'=='2' goto restore
-echo.
-echo Please enter valid option
-pause
-goto follina
-
-
-:backupkey
-cls
-echo ############################################
-echo.
-echo.
-md %homedrive%%homepath%\FollinaMitigation
-echo Backing up Registry Keys
-reg export HKEY_CLASSES_ROOT\ms-msdt %homedrive%%homepath%\FollinaMitigation\msdt
-echo.
-echo Deleting Registry Keys
-reg delete HKEY_CLASSES_ROOT\ms-msdt /f
-echo.
-echo Keys backed up to %homedrive%%homepath%\FollinaMitigation and deleted from Registry
-echo.
-echo This Temp folder will be removed when a patch is released and you do a restore.
-echo Please leave it in place until then.
-echo.
-pause
-goto other
-
-:restore
-cls
-echo ############################################
-echo.
-echo.
-echo Importing Registry Keys
-reg import %homedrive%%homepath%\FollinaMitigation\msdt
-echo.
-echo Removing Temp Folder
-rmdir /s /q %homedrive%%homepath%\FollinaMitigation
-echo.
-echo Done
-echo.
-pause
 goto other
 
 :: 18
@@ -524,6 +477,57 @@ goto other
 "%~dp0Advanced IP Scanner\advanced_ip_scanner.exe"
 goto other
 
+:: 19
+:wifi
+@echo off
+setlocal enabledelayedexpansion
+for /f "tokens=2delims=:" %%a in ('netsh wlan show profile ^|findstr ":"') do (
+    set "ssid=%%~a"
+    call :getpwd "%%ssid:~1%%"
+)
+
+pause
+
+goto other
+
+:: 20
+:wincache
+net stop wuauserv
+net stop bits
+cd %windir%\SoftwareDistribution
+del /f /s /q *.*
+net start wuauserv
+net start bits
+
+pause
+
+goto other
+
+:: 21
+: ReinstallTaskbar
+powershell -command "Get-AppxPackage -AllUsers| Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)AppXManifest.xml"}"
+
+pause
+
+goto other
+
+:: 22
+:dns2
+for /F "tokens=3,*" %%a in ('netsh interface show interface^|find "Connected"') do (set itf=%%b)
+
+((ipconfig | findstr /C:IPv4 | findstr /V Link) >Nul && (netsh interface ipv4 set dnsservers %itf% static 1.1.1.2 primary && netsh interface ipv4 add dnsservers %itf% 1.0.0.2 index=2 && echo IPv4 DNS modified))
+
+((ipconfig | findstr /C:IPv6 | findstr /V Link) >Nul && (netsh interface ipv6 set dnsservers %itf% static '2606:4700:4700::1112' primary && netsh interface ipv6 add dnsservers %itf% '2606:4700:4700::1002' index=2 && echo IPv6 DNS modified))
+
+ipconfig /flushdns
+(echo DNS set to Cloudflare-Block malware and adult content-and cache flushed at %time% && echo.) >> "%logfile%"
+pause
+goto other
+
 :end
 
 exit
+
+:getpwd
+set "ssid=%*"
+for /f "tokens=2delims=:" %%i in ('netsh wlan show profile name^="%ssid:"=%" key^=clear ^| findstr /C:"Key Content"') do echo ssid: %ssid% pass: %%i
